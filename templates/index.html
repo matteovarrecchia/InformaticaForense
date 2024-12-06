@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Path Viewer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-rotatedmarker/leaflet.rotatedMarker.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        /* Stile generale */
+        body {
+            display: flex;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f0f0;
+        }
+
+        /* Contenitore del form */
+        #form-container {
+            width: 300px;
+            padding: 20px;
+            border-right: 2px solid #ccc;
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-height: 100%;
+            overflow-y: auto;
+        }
+
+        /* Mappa */
+        #map {
+            flex-grow: 1;
+            height: 100%;
+        }
+
+        /* Form per il caricamento del CSV */
+        #csv-form input[type="file"] {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        #csv-form button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+
+        #csv-form button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Messaggio di errore */
+        #error-message {
+            color: red;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        /* Sezione della legenda */
+        .legend {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            font-size: 14px;
+            margin-top: 20px;
+        }
+
+        .legend div {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .legend div:last-child {
+            margin-bottom: 0;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            border: 1px solid #000;
+            border-radius: 50%;
+        }
+
+        .green {
+            background-color: green;
+        }
+
+        .yellow {
+            background-color: yellow;
+        }
+
+        .orange {
+            background-color: orange;
+        }
+
+        .red {
+            background-color: red;
+        }
+
+        /* Form per il filtro */
+        #time-filter-container {
+            margin-top: 20px;
+            display: none;
+        }
+
+        #time-filter-form input,
+        #time-filter-form button {
+            margin: 5px 0;
+            padding: 10px;
+            font-size: 14px;
+            width: 100%;
+            border-radius: 5px;
+        }
+
+        #time-filter-form button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        #time-filter-form button:hover {
+            background-color: #218838;
+        }
+
+        /* Link per visualizzare i dati */
+        #view-table {
+            margin-top: 10px;
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        #view-table:hover {
+            text-decoration: underline;
+        }
+
+        /* Layout del form per l'ora */
+        #time-filter-form label {
+            font-size: 14px;
+        }
+
+        /* Assicurarsi che il form non strabordi */
+        #time-filter-form input[type="datetime-local"] {
+            width: calc(100% - 20px); /* Imposta la larghezza degli input */
+            margin-bottom: 10px;
+            padding: 10px;
+            font-size: 14px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="form-container">
+        <div>
+            <h2>Carica un file CSV</h2>
+            <p id="error-message"></p>
+            <form id="csv-form" enctype="multipart/form-data">
+                <input type="file" name="csvfile" id="csvfile" accept=".csv" required />
+                <button type="submit">Invia</button>
+            </form>
+            <br>
+            <a href="/showFlightData" id="view-table" style="display: none;">Visualizza marker completi</a>
+        </div>
+
+        <!-- Nascondi inizialmente il form di filtro -->
+        <div id="time-filter-container" style="display: none;">
+            <h3>Filtra per intervallo di tempo</h3>
+            <form id="time-filter-form">
+                <label for="from_time">Da:</label>
+                <input type="datetime-local" id="from_time" name="from_time">
+                <label for="to_time">A:</label>
+                <input type="datetime-local" id="to_time" name="to_time">
+                <button type="submit">Filtra</button>
+            </form>
+        </div>
+
+        <div class="legend">
+            <div><div class="legend-color green"></div> Altitudine: < 1000 m</div>
+            <div><div class="legend-color yellow"></div> Altitudine: 1000 - 5000 m</div>
+            <div><div class="legend-color orange"></div> Altitudine: 5000 - 10000 m</div>
+            <div><div class="legend-color red"></div> Altitudine: > 10000 m</div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+        let flightData = [];
+
+        // Funzione per determinare il colore in base all'altitudine
+        function altitudeToColor(altitude) {
+            if (altitude < 1000) {
+                return 'green';
+            } else if (altitude < 5000) {
+                return 'yellow';
+            } else if (altitude < 10000) {
+                return 'orange';
+            } else {
+                return 'red';
+            }
+        }
+
+        // Inizializza la mappa
+        const map = L.map('map').setView([41.9028, 12.4964], 5.4);
+
+        // Aggiungi una base map (OpenStreetMap)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(map);
+
+        $('#csv-form').on('submit', function (e) {
+            e.preventDefault();
+
+            const formData = new FormData();
+            const fileInput = $('#csvfile')[0].files[0];
+
+            if (!fileInput) {
+                $('#error-message').text('Seleziona un file CSV prima di inviare.');
+                return;
+            }
+
+            formData.append('csvfile', fileInput);
+
+            // Effettua una richiesta POST al server Flask
+            $.ajax({
+                url: '/upload_csv',
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (response) {
+                    if (response.status === 'success') {
+                        flightData = response.flightData;
+
+                        // Salva i dati nel sessionStorage
+                        sessionStorage.setItem('flightData', JSON.stringify(flightData));
+
+                        // Centra la mappa sul primo punto
+                        if (flightData.length > 0) {
+                            const startPoint = [flightData[0].latitude, flightData[0].longitude];
+                            map.setView(startPoint, 6);
+
+                            flightData.forEach((point, index) => {
+                                const markerIcon = L.icon({
+                                    iconUrl: "/static/images/plane.png",
+                                    iconSize: [30, 30],
+                                    iconAnchor: [15, 15],
+                                });
+
+                                L.marker([point.latitude, point.longitude], {
+                                    icon: markerIcon,
+                                    rotationAngle: point.direction,
+                                    rotationOrigin: "center"
+                                }).addTo(map)
+                                .bindPopup(`
+                                    <strong>Altitudine:</strong> ${point.altitude} m<br>
+                                    <strong>Velocità:</strong> ${point.speed.toFixed(2)} km/h<br>
+                                    <strong>Direzione:</strong> ${point.direction}°<br>
+                                    <strong>Date:</strong> ${point.timestamp.split('T')[0]}<br>
+                                    <strong>Time:</strong> ${point.timestamp.split('T')[1].split('Z')[0]}
+                                `);
+                            });
+
+                            // Disegna la rotta colorata
+                            for (let i = 1; i < flightData.length; i++) {
+                                const prevPoint = flightData[i - 1];
+                                const currPoint = flightData[i];
+                                const color = altitudeToColor(currPoint.altitude);
+
+                                L.polyline(
+                                    [[prevPoint.latitude, prevPoint.longitude], [currPoint.latitude, currPoint.longitude]],
+                                    {
+                                        color: color,
+                                        weight: 3,
+                                    }
+                                ).addTo(map);
+                            }
+
+                            // Imposta i valori dei filtri di tempo
+                            const startTime = response.start_time;
+                            const endTime = response.end_time;
+
+                            // Funzione per formattare la data
+                            function formatDateForInput(dateString) {
+                                const date = new Date(dateString);
+                                let hours = date.getHours();
+                                let minutes = date.getMinutes();
+                                hours = hours < 10 ? '0' + hours : hours;
+                                minutes = minutes < 10 ? '0' + minutes : minutes;
+                                return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}T${hours}:${minutes}`;
+                            }
+
+                            // Imposta automaticamente i valori nel form
+                            $('#from_time').val(formatDateForInput(startTime));
+                            $('#to_time').val(formatDateForInput(endTime));
+
+                            // Mostra il form di filtro
+                            $('#time-filter-container').show();
+
+                            // Mostra il link per visualizzare i dati
+                            $('#view-table').show();
+                        }
+                    } else {
+                        $('#error-message').text(response.message || 'Errore durante il caricamento del file.');
+                    }
+                },
+                error: function () {
+                    $('#error-message').text('Si è verificato un errore durante la richiesta al server.');
+                }
+            });
+        });
+
+        // Funzione di filtro
+        $('#time-filter-form').on('submit', function (e) {
+            e.preventDefault();
+
+            const fromTime = $('#from_time').val();
+            const toTime = $('#to_time').val();
+
+            // Confronta i tempi
+            const fromDate = new Date(fromTime);
+            const toDate = new Date(toTime);
+
+            const filteredData = flightData.filter(point => {
+                const pointTime = new Date(point.timestamp);
+                return pointTime >= fromDate && pointTime <= toDate;
+            });
+
+            // Rimuovi i marker e la rotta
+            map.eachLayer(function (layer) {
+                if (layer instanceof L.Marker || layer instanceof L.Polyline) {
+                    map.removeLayer(layer);
+                }
+            });
+
+            // Aggiungi marker filtrati
+            filteredData.forEach(point => {
+                const markerIcon = L.icon({
+                    iconUrl: "/static/images/plane.png",
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15],
+                });
+
+                L.marker([point.latitude, point.longitude], {
+                    icon: markerIcon,
+                    rotationAngle: point.direction,
+                    rotationOrigin: "center"
+                }).addTo(map)
+                .bindPopup(`
+                    <strong>Altitudine:</strong> ${point.altitude} m<br>
+                    <strong>Velocità:</strong> ${point.speed.toFixed(2)} km/h<br>
+                    <strong>Direzione:</strong> ${point.direction}°<br>
+                    <strong>Timestamp:</strong> ${point.timestamp}
+                `);
+            });
+
+            // Disegna la rotta colorata
+            for (let i = 1; i < filteredData.length; i++) {
+                const prevPoint = filteredData[i - 1];
+                const currPoint = filteredData[i];
+                const color = altitudeToColor(currPoint.altitude);
+
+                L.polyline(
+                    [[prevPoint.latitude, prevPoint.longitude], [currPoint.latitude, currPoint.longitude]],
+                    {
+                        color: color,
+                        weight: 3,
+                    }
+                ).addTo(map);
+            }
+        });
+    </script>
+</body>
+
+</html>

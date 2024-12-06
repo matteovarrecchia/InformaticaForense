@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Data</title>
+    <style>
+        /* Impostazioni di base */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f7f8fa;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            color: #333;
+            padding-bottom: 50px;
+        }
+
+        /* Barra di navigazione */
+        .navbar {
+            width: 100%;
+            background-color: #3498db;
+            padding: 15px 0;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            font-size: 18px;
+            margin: 0 20px;
+            padding: 10px 20px;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        .navbar a:hover {
+            background-color: #2980b9;
+        }
+
+        /* Titolo e callsign */
+        h2 {
+            font-size: 28px;
+            color: #333;
+            font-weight: 600;
+            margin-top: 30px;
+            display: flex;
+            align-items: center;
+        }
+
+        .callsign {
+            background-color: #3498db;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 5px;
+            margin-left: 20px;
+            font-size: 18px;
+        }
+
+        /* Tabella dei dati */
+        table {
+            width: 90%;
+            max-width: 1200px;
+            margin-top: 40px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 16px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+            font-size: 16px;
+        }
+
+        th {
+            background-color: #2ecc71;
+            color: white;
+            font-weight: 700;
+        }
+
+        td {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover td {
+            background-color: #ecf0f1;
+        }
+
+        tr:nth-child(even) td {
+            background-color: #f3f3f3;
+        }
+
+        /* Pulsante "Torna alla mappa" */
+        .button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            cursor: pointer;
+            text-align: center;
+            margin-top: 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        .button:hover {
+            background-color: #2980b9;
+        }
+
+        /* Paginazione */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 40px;
+        }
+
+        .pagination a {
+            margin: 0 12px;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        .pagination a:hover {
+            background-color: #2980b9;
+        }
+
+        .pagination a.disabled {
+            background-color: #bdc3c7;
+            pointer-events: none;
+        }
+
+        /* Stile per il form del filtro */
+        form {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px; /* Spaziatura tra gli elementi */
+            margin-top: 20px;
+        }
+
+        form label {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        form input[type="datetime-local"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        form button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+
+        form button:hover {
+            background-color: #2980b9;
+        }
+    </style>
+
+</head>
+<body>
+
+<!-- Barra di navigazione -->
+<div class="navbar">
+    <a href="/">Home</a>
+    <a href="/showFlightData">Flight Data</a>
+</div>
+
+<!-- Titolo con callsign -->
+<div style="display: flex; align-items: center;">
+    <h2>Flight Data <div class="callsign">{{ flight_data[0].callsign }}</div></h2>
+</div>
+
+<!-- Form per il filtro per data e ora -->
+<form method="POST" style="margin-top: 20px; display: flex; justify-content: center; align-items: center; gap: 15px;">
+    <label for="from" style="font-size: 16px; font-weight: bold; color: #333;">From:</label>
+    <input type="datetime-local" id="from" name="from" value="{{ from_time.replace('T', ' ').replace('Z', '') }}" required
+        style="padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px;">
+    <label for="to" style="font-size: 16px; font-weight: bold; color: #333;">To:</label>
+    <input type="datetime-local" id="to" name="to" value="{{ to_time.replace('T', ' ').replace('Z', '') }}" required
+        style="padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px;">
+    <button type="submit"
+        style="padding: 10px 20px; background-color: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; transition: background-color 0.3s ease;">
+        Filter
+    </button>
+</form>
+
+
+<!-- Tabella dei Dati di Volo -->
+<table id="flight-data-table">
+    <thead>
+        <tr>
+            <th>Altitudine</th>
+            <th>Velocità (km/h)</th>
+            <th>Direzione</th>
+            <th>Data</th>
+            <th>Orario</th>
+            <th>Latitudine</th>
+            <th>Longitudine</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for point in flight_data %}
+        <tr>
+            <td>{{ point.altitude }} m</td>
+            <td>{{ '{:.2f}'.format(point.speed) }} km/h</td>
+            <td>{{ point.direction }}°</td>
+            <td>{{ point.timestamp.split('T')[0] }}</td>
+            <td>{{ point.timestamp.split('T')[1].split('Z')[0] }}</td>
+            <td>{{ point.latitude }}</td>
+            <td>{{ point.longitude }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Paginazione sotto la tabella -->
+<div class="pagination">
+    {% if page > 1 %}
+        <a href="/showFlightData?page={{ page - 1 }}&from={{ from_time }}&to={{ to_time }}">Prev</a>
+    {% else %}
+        <a class="disabled">Prev</a>
+    {% endif %}
+    <span>Page {{ page }} of {{ total_pages }}</span>
+    {% if page < total_pages %}
+        <a href="/showFlightData?page={{ page + 1 }}&from={{ from_time }}&to={{ to_time }}">Next</a>
+    {% else %}
+        <a class="disabled">Next</a>
+    {% endif %}
+</div>
+
+
+</body>
+</html>
