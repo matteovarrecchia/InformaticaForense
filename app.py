@@ -3,6 +3,7 @@ import os
 import pandas as pd
 from math import isnan
 import json
+from extractWeatherData import *
 
 app = Flask(__name__)
 
@@ -131,6 +132,21 @@ def show_flight_data():
     except Exception as e:
         # Gestione generica degli errori
         return redirect(url_for('show_flight_data'))
+
+
+@app.route('/showWeatherData')
+def show_weather_data():
+    # Ottieni i parametri dalla query string
+    latitude = request.args.get('lat')
+    longitude = request.args.get('lng')
+    date = request.args.get('date')  # Data nel formato 'YYYY-MM-DD'
+    hour = request.args.get('hour')  # Ora come stringa 'HH'
+
+    weatherData = main(latitude,longitude,date,hour)
+
+    # Passa i dati al template
+    #return render_template('showWeatherData.html', latitude=latitude, longitude=longitude, date=date, hour=hour, weather_data=weather_data)
+    return render_template('showWeatherData.html', weather_data=weatherData)
 
 
 @app.errorhandler(404)

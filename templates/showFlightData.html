@@ -235,6 +235,10 @@
             <td>{{ point.timestamp.split('T')[1].split('Z')[0] }}</td>
             <td>{{ point.latitude }}</td>
             <td>{{ point.longitude }}</td>
+            <td>
+                <a href="/showWeatherData?lat={{ point.latitude }}&lng={{ point.longitude }}&date={{ point.timestamp.split('T')[0] }}&hour={{ point.timestamp.split('T')[1].split(':')[0] }}"
+                    style="color: #3498db; text-decoration: none; font-weight: bold;">Meteo</a>
+            </td>
         </tr>
         {% endfor %}
     </tbody>
