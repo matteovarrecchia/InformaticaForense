@@ -2,10 +2,10 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for
 import os
 import pandas as pd
 from math import isnan
-import json
 from extractWeatherData import *
 
 app = Flask(__name__)
+
 
 def altitude_to_color(altitude):
     if altitude < 1000:
@@ -17,13 +17,16 @@ def altitude_to_color(altitude):
     else:
         return 'red'
 
+
 # Funzione per convertire nodi in km/h
 def knots_to_kmh(knots):
     return knots * 1.852
 
+
 @app.route('/')
 def index():
     return render_template('index.html')
+
 
 @app.route('/upload_csv', methods=['POST'])
 def upload_csv():
@@ -142,10 +145,9 @@ def show_weather_data():
     date = request.args.get('date')  # Data nel formato 'YYYY-MM-DD'
     hour = request.args.get('hour')  # Ora come stringa 'HH'
 
-    weatherData = main(latitude,longitude,date,hour)
+    weatherData = main(latitude, longitude, date, hour)
 
     # Passa i dati al template
-    #return render_template('showWeatherData.html', latitude=latitude, longitude=longitude, date=date, hour=hour, weather_data=weather_data)
     return render_template('showWeatherData.html', weather_data=weatherData)
 
 
