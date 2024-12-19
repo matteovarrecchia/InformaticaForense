@@ -11,6 +11,7 @@ import csv
 
 def find_flight_history_url(flight_number, target_date):
     # Impostare le opzioni per il driver in modalità headless (senza aprire il browser)
+    global filename
     chrome_options = Options()
     chrome_options.add_argument("--headless")  # Esegui senza apertura della finestra del browser
     chrome_options.add_argument("--disable-gpu")  # Disabilita l'uso della GPU (utile su alcune macchine)
@@ -48,7 +49,7 @@ def find_flight_history_url(flight_number, target_date):
             print(f"URL con tracklog: {tracklog_url}")
 
             # Passa al parsing della tabella tracklog
-            extract_tracklog_data(flight_number, driver, tracklog_url, target_date)
+            filename = extract_tracklog_data(flight_number, driver, tracklog_url, target_date)
         else:
             # Nessun match trovato
             print(f"Nessun URL trovato corrispondente alla data {target_date} per il volo {flight_number}.")
@@ -57,6 +58,7 @@ def find_flight_history_url(flight_number, target_date):
     finally:
         # Chiudere il driver
         driver.quit()
+        return filename
 
 
 def extract_tracklog_data(flight_number, driver, tracklog_url, target_date):
@@ -211,6 +213,7 @@ def extract_tracklog_data(flight_number, driver, tracklog_url, target_date):
                 writer.writerow(entry)  # Scrive i dati nel file CSV
 
         print(f"I dati validi sono stati scritti nel file {filename}")
+        return filename
 
     except Exception as e:
         print(f"Errore durante l'estrazione dei dati del tracklog: {e}")

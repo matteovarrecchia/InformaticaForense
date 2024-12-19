@@ -1,7 +1,10 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import os
+import requests
 import pandas as pd
 from math import isnan
+
+from download import find_flight_history_url
 from extractWeatherData import *
 
 app = Flask(__name__)
@@ -135,6 +138,30 @@ def show_flight_data():
     except Exception as e:
         # Gestione generica degli errori
         return redirect(url_for('show_flight_data'))
+
+
+@app.route('/submit_flight_details', methods=['POST'])
+def submit_flight_details():
+    flight_code = request.form.get('flight_code')
+    flight_date = request.form.get('flight_date')
+
+    if flight_code and flight_date:
+        # Elabora il codice volo (in maiuscolo) e la data (senza trattini)
+        print(f"Codice volo: {flight_code}, Data: {flight_date}")
+        find_flight_history_url(flight_code, flight_date)
+        return jsonify({"status": "success"})
+
+    return jsonify({"status": "error", "message": "Dati volo mancanti"}), 400
+
+
+
+
+def send_csv_to_flask(csv_file_path):
+    url = 'http://127.0.0.1:5000/upload_csv'  # URL della tua rotta Flask
+    with open(csv_file_path, 'rb') as file:
+        files = {'csvfile': file}
+        response = requests.post(url, files=files)
+        return response.json()
 
 
 @app.route('/showWeatherData')

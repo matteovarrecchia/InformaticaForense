@@ -39,26 +39,29 @@
             height: 100%;
         }
 
-        /* Form per il caricamento del CSV */
-        #csv-form input[type="file"] {
-            margin-bottom: 10px;
-            padding: 8px;
+        /* Stile comune per tutti i form */
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        form input,
+        form button {
+            margin-bottom: 15px;
+            padding: 10px;
+            font-size: 14px;
             border-radius: 5px;
             border: 1px solid #ccc;
         }
 
-        #csv-form button {
+        form button {
             background-color: #007bff;
             color: white;
-            padding: 12px;
-            border: none;
-            border-radius: 5px;
             cursor: pointer;
-            width: 100%;
             font-size: 16px;
         }
 
-        #csv-form button:hover {
+        form button:hover {
             background-color: #0056b3;
         }
 
@@ -113,43 +116,6 @@
             background-color: red;
         }
 
-        /* Form per il filtro */
-        #time-filter-container {
-            margin-top: 20px;
-            display: none;
-        }
-
-        #time-filter-form input,
-        #time-filter-form button {
-            margin: 5px 0;
-            padding: 10px;
-            font-size: 14px;
-            width: 100%;
-            border-radius: 5px;
-        }
-
-        #time-filter-form button {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-
-        #time-filter-form button:hover {
-            background-color: #218838;
-        }
-
-        /* Link per visualizzare i dati */
-        #view-table {
-            margin-top: 10px;
-            color: #007bff;
-            text-decoration: none;
-        }
-
-        #view-table:hover {
-            text-decoration: underline;
-        }
-
         /* Layout del form per l'ora */
         #time-filter-form label {
             font-size: 14px;
@@ -164,12 +130,33 @@
             border-radius: 5px;
             border: 1px solid #ccc;
         }
+
+        /* Link per visualizzare i dati */
+        #view-table {
+            margin-top: 10px;
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        #view-table:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 
 <body>
 
     <div id="form-container">
+        <!-- Nuovo form per il codice volo e la data -->
+        <div>
+            <h2>Inserisci Codice Volo e Data</h2>
+            <form id="flight-form">
+                <input type="text" name="flight-code" id="flight-code" placeholder="Codice Volo" required />
+                <input type="date" name="flight-date" id="flight-date" required />
+                <button type="submit">Invia</button>
+            </form>
+        </div>
+
         <div>
             <h2>Carica un file CSV</h2>
             <p id="error-message"></p>
@@ -328,6 +315,33 @@
                 }
             });
         });
+
+        $('#flight-form').on('submit', function (e) {
+            e.preventDefault();
+
+            const flightCode = $('#flight-code').val().toUpperCase();  // Codice volo in maiuscolo
+            const flightDate = $('#flight-date').val().replace(/-/g, ''); // Rimuovi i trattini dalla data
+
+            // Esegui la richiesta AJAX per inviare i dettagli del volo
+        $.ajax({
+            url: '/submit_flight_details',
+            type: 'POST',
+            data: {
+                flight_code: flightCode,
+                flight_date: flightDate
+            },
+            success: function (response) {
+                // Messaggio di successo
+                alert('Dati volo inviati con successo!');
+            },
+            error: function () {
+                // Messaggio di errore
+                alert('Si è verificato un errore nell\'invio dei dati volo.');
+         }
+        });
+    });
+
+
 
         // Funzione di filtro
         $('#time-filter-form').on('submit', function (e) {
