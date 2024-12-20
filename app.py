@@ -148,12 +148,14 @@ def submit_flight_details():
     if flight_code and flight_date:
         # Elabora il codice volo (in maiuscolo) e la data (senza trattini)
         print(f"Codice volo: {flight_code}, Data: {flight_date}")
-        find_flight_history_url(flight_code, flight_date)
-        return jsonify({"status": "success"})
+        url = find_flight_history_url(flight_code, flight_date)
+        print(url)
+        if url is not None:
+            return jsonify({"status": "success"}), 200
+        else:
+            return jsonify({"status": "error"}), 400
 
-    return jsonify({"status": "error", "message": "Dati volo mancanti"}), 400
-
-
+    return jsonify({"status": "error"}), 400
 
 
 def send_csv_to_flask(csv_file_path):

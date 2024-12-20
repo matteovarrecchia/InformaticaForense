@@ -53,8 +53,10 @@ def find_flight_history_url(flight_number, target_date):
         else:
             # Nessun match trovato
             print(f"Nessun URL trovato corrispondente alla data {target_date} per il volo {flight_number}.")
+            return None
     except Exception as e:
         print(f"Errore durante la ricerca dell'URL: {e}")
+        return None
     finally:
         # Chiudere il driver
         driver.quit()
@@ -95,26 +97,8 @@ def extract_tracklog_data(flight_number, driver, tracklog_url, target_date):
                 if not all([orario, latitudine, longitudine, rotta, velocita_kn, altitudine]):
                     continue  # Salta la riga se uno dei campi è vuoto
 
-                # Funzione per formattare l'orario
-                def format_orario(orario):
-                    orario = orario.split(" ")[-1]
-                    parts = orario.split(":")
-                    if len(parts) >= 3:
-                        seconds = parts[2][:2]
-                        return f"{parts[0]}:{parts[1]}:{seconds}"
-                    return orario
-
                 formatted_orario = format_orario(orario)
                 utc = f"{target_date[:4]}-{target_date[4:6]}-{target_date[6:8]}T{formatted_orario}Z"
-
-                # Funzione per ottenere il timestamp in millisecondi
-                def get_timestamp_milliseconds(utc_time):
-                    try:
-                        dt_obj = datetime.strptime(utc_time, "%Y-%m-%dT%H:%M:%SZ")
-                        timestamp_ms = int(dt_obj.timestamp() * 1000)
-                        return int(str(timestamp_ms)[:10])
-                    except ValueError:
-                        return None  # Ritorna None se ci sono errori di formattazione
 
                 timestamp_ms = get_timestamp_milliseconds(utc)
                 if timestamp_ms is None:
@@ -136,20 +120,8 @@ def extract_tracklog_data(flight_number, driver, tracklog_url, target_date):
                     except ValueError:
                         continue  # Se l'altitudine non è un numero valido, salta questa riga
 
-                def remove_repetition(value):
-                    n = len(value)
-                    for i in range(1, n // 2 + 1):
-                        if i >= 2 and value[:i] == value[i:i + i]:
-                            return value[:i]
-                    return value
-
                 altitudine = remove_repetition(str(altitudine))  # Aggiungi str() per sicurezza
                 position = f"{latitudine},{longitudine}"
-
-                # Formattazione della rotta
-                def format_rotta(rotta):
-                    rotta_number = re.sub(r'[^\d.-]', '', rotta)
-                    return rotta_number
 
                 formatted_rotta = format_rotta(rotta)
 
@@ -219,10 +191,35 @@ def extract_tracklog_data(flight_number, driver, tracklog_url, target_date):
         print(f"Errore durante l'estrazione dei dati del tracklog: {e}")
 
 
-if __name__ == "__main__":
-    # Chiedere all'utente il numero del volo e la data desiderata
-    flight_number = input("Inserisci il numero del volo (es. PGT1228): ")
-    target_date = input("Inserisci la data (es. 20241218): ")
+# Funzione per ottenere il timestamp in millisecondi
+def get_timestamp_milliseconds(utc_time):
+    try:
+        dt_obj = datetime.strptime(utc_time, "%Y-%m-%dT%H:%M:%SZ")
+        timestamp_ms = int(dt_obj.timestamp() * 1000)
+        return int(str(timestamp_ms)[:10])
+    except ValueError:
+         return None  # Ritorna None se ci sono errori di formattazione
 
-    # Chiamare la funzione per cercare l'URL del volo
-    find_flight_history_url(flight_number, target_date)
+
+# Formattazione della rotta
+def format_rotta(rotta):
+    rotta_number = re.sub(r'[^\d.-]', '', rotta)
+    return rotta_number
+
+
+def remove_repetition(value):
+    n = len(value)
+    for i in range(1, n // 2 + 1):
+        if i >= 2 and value[:i] == value[i:i + i]:
+            return value[:i]
+    return value
+
+
+# Funzione per formattare l'orario
+def format_orario(orario):
+    orario = orario.split(" ")[-1]
+    parts = orario.split(":")
+    if len(parts) >= 3:
+        seconds = parts[2][:2]
+        return f"{parts[0]}:{parts[1]}:{seconds}"
+    return orario
