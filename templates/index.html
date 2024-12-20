@@ -141,6 +141,31 @@
         #view-table:hover {
             text-decoration: underline;
         }
+
+        #search-status {
+        margin-top: 15px;
+        font-size: 14px;
+        }
+
+        /* Stati di ricerca */
+        .searching {
+            color: blue;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .error {
+            color: red;
+        }
+
+         hr {
+            border: 0;
+            border-top: 1px solid #000;
+            margin: 20px 0;
+        }
+
     </style>
 </head>
 
@@ -149,7 +174,9 @@
     <div id="form-container">
         <!-- Nuovo form per il codice volo e la data -->
         <div>
-            <h2>Inserisci Codice Volo e Data</h2>
+            <h3>Inserisci Codice Volo e Data</h3>
+            <p id="search-status" style="margin-top: 15px;"></p>
+
             <form id="flight-form">
                 <input type="text" name="flight-code" id="flight-code" placeholder="Codice Volo" required />
                 <input type="date" name="flight-date" id="flight-date" required />
@@ -157,16 +184,21 @@
             </form>
         </div>
 
+        <hr>
+
         <div>
-            <h2>Carica un file CSV</h2>
+            <h3>Carica il file CSV del volo</h3>
+            <a href="/showFlightData" id="view-table" style="display: none;">Visualizza marker completi</a>
+
             <p id="error-message"></p>
             <form id="csv-form" enctype="multipart/form-data">
                 <input type="file" name="csvfile" id="csvfile" accept=".csv" required />
                 <button type="submit">Invia</button>
             </form>
             <br>
-            <a href="/showFlightData" id="view-table" style="display: none;">Visualizza marker completi</a>
         </div>
+
+        <hr>
 
         <!-- Nascondi inizialmente il form di filtro -->
         <div id="time-filter-container" style="display: none;">
@@ -316,30 +348,37 @@
             });
         });
 
-        $('#flight-form').on('submit', function (e) {
-            e.preventDefault();
+$('#flight-form').on('submit', function (e) {
+    e.preventDefault(); // Evita il comportamento di invio del modulo
 
-            const flightCode = $('#flight-code').val().toUpperCase();  // Codice volo in maiuscolo
-            const flightDate = $('#flight-date').val().replace(/-/g, ''); // Rimuovi i trattini dalla data
+    const flightCode = $('#flight-code').val().toUpperCase();  // Codice volo in maiuscolo
+    const flightDate = $('#flight-date').val().replace(/-/g, ''); // Rimuovi i trattini dalla data
 
-            // Esegui la richiesta AJAX per inviare i dettagli del volo
-        $.ajax({
-            url: '/submit_flight_details',
-            type: 'POST',
-            data: {
-                flight_code: flightCode,
-                flight_date: flightDate
-            },
-            success: function (response) {
-                // Messaggio di successo
-                alert('Dati volo inviati con successo!');
-            },
-            error: function () {
-                // Messaggio di errore
-                alert('Il volo indicato non è stato trovato, assicurati che il volo esista nella data sottoscritta!');
-         }
-        });
+    // Mostra il messaggio "Ricerca in corso..." e applica il colore blu
+    $('#search-status').html('<p>Ricerca in corso...attendi qualche secondo...</p>');
+    $('#search-status').removeClass('success error').addClass('searching');  // Imposta il colore blu
+
+    // Esegui la richiesta AJAX per inviare i dettagli del volo
+    $.ajax({
+        url: '/submit_flight_details',
+        type: 'POST',
+        data: {
+            flight_code: flightCode,
+            flight_date: flightDate
+        },
+        success: function(response) {
+            // Messaggio di successo
+            $('#search-status').html('<p>Ricerca terminata! Dati individuati e scaricati con successo !</p>');
+            $('#search-status').removeClass('searching error').addClass('success');  // Imposta il colore verde
+        },
+        error: function() {
+            // Messaggio di errore
+            $('#search-status').html('<p>Ricerca terminata. Il volo indicato non è stato trovato, assicurati che il volo esista nella data sottoscritta.</p>');
+            $('#search-status').removeClass('searching success').addClass('error');  // Imposta il colore rosso
+        }
     });
+});
+
 
 
 
