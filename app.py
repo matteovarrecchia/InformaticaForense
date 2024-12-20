@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import os
-import requests
 import pandas as pd
 from math import isnan
 
@@ -8,7 +7,6 @@ from download import find_flight_history_url
 from extractWeatherData import *
 
 app = Flask(__name__)
-
 
 def altitude_to_color(altitude):
     if altitude < 1000:
@@ -31,8 +29,9 @@ def index():
     return render_template('index.html')
 
 
+# Funzione per gestire il caso POST (carica il file CSV manualmente)
 @app.route('/upload_csv', methods=['POST'])
-def upload_csv():
+def upload_csv_post():
     if 'csvfile' not in request.files:
         return jsonify({"status": "error", "message": "No file part"})
 
@@ -45,6 +44,13 @@ def upload_csv():
         os.makedirs("flightCSV", exist_ok=True)  # Crea la directory se non esiste
         file.save(file_path)
 
+        # Leggi il file CSV
+        return process_csv(file_path)
+
+    return jsonify({"status": "error", "message": "File non valido"})
+
+def process_csv(file_path):
+    try:
         # Leggi il file CSV
         data = pd.read_csv(file_path)
         data[['latitude', 'longitude']] = data['Position'].str.split(',', expand=True)
@@ -81,6 +87,9 @@ def upload_csv():
             "start_time": start_time,
             "end_time": end_time
         })
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Errore durante l'elaborazione del CSV: {str(e)}"}), 500
 
 
 @app.route('/showFlightData', methods=['GET', 'POST'])

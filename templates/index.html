@@ -178,9 +178,9 @@
             <p id="search-status" style="margin-top: 15px;"></p>
 
             <form id="flight-form">
-                <input type="text" name="flight-code" id="flight-code" placeholder="Codice Volo" required />
+                <input type="text" name="flight-code" id="flight-code" placeholder="Codice Volo (es. ITY1642)" required />
                 <input type="date" name="flight-date" id="flight-date" required />
-                <button type="submit">Invia</button>
+                <button type="submit">Cerca Volo !</button>
             </form>
         </div>
 
@@ -193,7 +193,7 @@
             <p id="error-message"></p>
             <form id="csv-form" enctype="multipart/form-data">
                 <input type="file" name="csvfile" id="csvfile" accept=".csv" required />
-                <button type="submit">Invia</button>
+                <button type="submit">Invia !</button>
             </form>
             <br>
         </div>
@@ -372,15 +372,12 @@ $('#flight-form').on('submit', function (e) {
             $('#search-status').removeClass('searching error').addClass('success');  // Imposta il colore verde
         },
         error: function() {
-            // Messaggio di errore
+            // Messaggio di errore se non si trova il volo
             $('#search-status').html('<p>Ricerca terminata. Il volo indicato non è stato trovato, assicurati che il volo esista nella data sottoscritta.</p>');
             $('#search-status').removeClass('searching success').addClass('error');  // Imposta il colore rosso
         }
     });
 });
-
-
-
 
         // Funzione di filtro
         $('#time-filter-form').on('submit', function (e) {
