@@ -31,26 +31,44 @@ def index():
 
 # Funzione per gestire il caso POST (carica il file CSV manualmente)
 @app.route('/upload_csv', methods=['POST'])
-def upload_csv_post():
+def upload_csv():
+    # Controlla se la chiave 'csvfile' è presente nei files inviati
     if 'csvfile' not in request.files:
-        return jsonify({"status": "error", "message": "No file part"})
+        return jsonify({"status": "error", "message": "No file part"}), 400
 
     file = request.files['csvfile']
+    print(f"File ricevuto: {file.filename}")  # Aggiungi un log per il nome del file
+
+    # Se il nome del file è vuoto, significa che l'utente non ha selezionato un file
     if file.filename == '':
-        return jsonify({"status": "error", "message": "No selected file"})
+        return jsonify({"status": "error", "message": "No selected file"}), 400
 
+        # Definisci il percorso del file
+    file_path = os.path.join("flightCSV/", file.filename)
+
+    # Verifica se il file esiste
+    if not os.path.exists(file_path):
+        return jsonify({"status": "error", "message": f"File {file.filename} non trovato"}), 400
+
+    # Verifica che il file sia un CSV
     if file and file.filename.endswith('.csv'):
-        file_path = os.path.join("flightCSV", file.filename)
-        os.makedirs("flightCSV", exist_ok=True)  # Crea la directory se non esiste
-        file.save(file_path)
+        # Procedi con l'elaborazione del file CSV
+        try:
 
-        # Leggi il file CSV
-        return process_csv(file_path)
+            # Aggiungi un log per vedere il file che stai cercando di processare
+            print(f"Elaborando il file: {file_path}")
+            return process_csv(file_path)
+        except Exception as e:
+            # Se ci sono errori durante il processing, stampiamo l'errore completo
+            print(f"Errore durante l'elaborazione del file: {str(e)}")  # Aggiungi un log per l'errore
+            return jsonify({"status": "error", "message": f"Errore durante l'elaborazione del file: {str(e)}"}), 500
+    else:
+        return jsonify({"status": "error", "message": "File non valido, assicurati che sia un CSV"}), 400
 
-    return jsonify({"status": "error", "message": "File non valido"})
 
 def process_csv(file_path):
     try:
+        print("PROCESS FILE", file_path)
         # Leggi il file CSV
         data = pd.read_csv(file_path)
         data[['latitude', 'longitude']] = data['Position'].str.split(',', expand=True)

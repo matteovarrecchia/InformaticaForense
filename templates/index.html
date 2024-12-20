@@ -166,14 +166,62 @@
             margin: 20px 0;
         }
 
+    /* Stile per l'intestazione */
+    header {
+        background-color: #0044cc; /* Colore di sfondo blu */
+        padding: 10px;
+        text-align: center; /* Centra il testo orizzontalmente */
+        position: fixed; /* Fissa l'intestazione nella parte superiore della pagina */
+        top: 0;
+        left: 0;
+        width: 100%; /* Fa in modo che l'intestazione prenda tutta la larghezza */
+        z-index: 1000; /* Mantiene l'intestazione sopra gli altri contenuti */
+    }
+
+    #app-name {
+        color: white; /* Colore del testo bianco */
+        font-size: 24px;
+        text-decoration: none; /* Rimuove la sottolineatura del link */
+        font-weight: bold;
+        display: inline-block;
+    }
+
+    #app-name:hover {
+        color: #ffcc00; /* Colore del testo giallo quando si passa sopra */
+    }
+
+    /* Aggiungi un po' di margine in basso al corpo per non far nascere contenuti dietro l'intestazione fissa */
+    #content {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 80px;
+        overflow-y: auto; /* Gestisce lo scrolling del contenuto */
+        height: calc(100vh - 50px); /* Imposta l'altezza al 100% meno l'altezza dell'intestazione */
+    }
+
+    /* Assicurati che il contenuto si adatti bene al layout */
+    .main-container {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        margin-top: 60px; /* Distanza tra l'intestazione e il contenuto */
+    }
+
+
     </style>
 </head>
 
 <body>
 
+    <header>
+        <a href="/" id="app-name">FLIGHT FORENSICS</a>
+    </header>
+
     <div id="form-container">
         <!-- Nuovo form per il codice volo e la data -->
         <div>
+            <br>
             <h3>Inserisci Codice Volo e Data</h3>
             <p id="search-status" style="margin-top: 15px;"></p>
 
@@ -192,7 +240,7 @@
 
             <p id="error-message"></p>
             <form id="csv-form" enctype="multipart/form-data">
-                <input type="file" name="csvfile" id="csvfile" accept=".csv" required />
+                <input type="file" name="csvfile" id="csvfile" accept=".csv"  />
                 <button type="submit">Invia !</button>
             </form>
             <br>
@@ -352,7 +400,7 @@ $('#flight-form').on('submit', function (e) {
     e.preventDefault(); // Evita il comportamento di invio del modulo
 
     const flightCode = $('#flight-code').val().toUpperCase();  // Codice volo in maiuscolo
-    const flightDate = $('#flight-date').val().replace(/-/g, ''); // Rimuovi i trattini dalla data
+    const flightDate = $('#flight-date').val().replace(/-/g, ''); // Rimuovi i trattini dalla data (es: 20241220)
 
     // Mostra il messaggio "Ricerca in corso..." e applica il colore blu
     $('#search-status').html('<p>Ricerca in corso...attendi qualche secondo...</p>');
@@ -370,6 +418,107 @@ $('#flight-form').on('submit', function (e) {
             // Messaggio di successo
             $('#search-status').html('<p>Ricerca terminata! Dati individuati e scaricati con successo !</p>');
             $('#search-status').removeClass('searching error').addClass('success');  // Imposta il colore verde
+
+            // Dopo aver ricevuto una risposta positiva, prepara il file CSV
+            const formData = new FormData();
+            const csvFile = new Blob([response.csvData], { type: 'text/csv' });  // Usa i dati CSV dal server
+
+            // Imposta il nome del file come codice volo + data (es: ITY1642_20241220.csv)
+            const fileName = flightCode + '_' + flightDate + '.csv';
+            formData.append('csvfile', csvFile, fileName);  // Usa il nome dinamico del file
+
+            // Aggiungi il ritardo di 4 secondi prima di inviare la richiesta POST per caricare il file
+            setTimeout(function() {
+                // Invia il file CSV tramite un altro AJAX (POST per caricarlo)
+                $.ajax({
+                    url: '/upload_csv',  // URL per l'upload
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,  // Non impostare il tipo di contenuto, FormData gestisce tutto
+                    processData: false,  // Non elaborare i dati, FormData gestisce tutto
+                    success: function (response) {
+                    if (response.status === 'success') {
+                        flightData = response.flightData;
+
+                        // Salva i dati nel sessionStorage
+                        sessionStorage.setItem('flightData', JSON.stringify(flightData));
+
+                        // Centra la mappa sul primo punto
+                        if (flightData.length > 0) {
+                            const startPoint = [flightData[0].latitude, flightData[0].longitude];
+                            map.setView(startPoint, 6);
+
+                            flightData.forEach((point, index) => {
+                                const markerIcon = L.icon({
+                                    iconUrl: "/static/images/plane.png",
+                                    iconSize: [30, 30],
+                                    iconAnchor: [15, 15],
+                                });
+
+                                L.marker([point.latitude, point.longitude], {
+                                    icon: markerIcon,
+                                    rotationAngle: point.direction,
+                                    rotationOrigin: "center"
+                                }).addTo(map)
+                                .bindPopup(`
+                                    <strong>Altitudine:</strong> ${point.altitude} m<br>
+                                    <strong>Velocità:</strong> ${point.speed.toFixed(2)} km/h<br>
+                                    <strong>Direzione:</strong> ${point.direction}°<br>
+                                    <strong>Date:</strong> ${point.timestamp.split('T')[0]}<br>
+                                    <strong>Time:</strong> ${point.timestamp.split('T')[1].split('Z')[0]}
+                                `);
+                            });
+
+                            // Disegna la rotta colorata
+                            for (let i = 1; i < flightData.length; i++) {
+                                const prevPoint = flightData[i - 1];
+                                const currPoint = flightData[i];
+                                const color = altitudeToColor(currPoint.altitude);
+
+                                L.polyline(
+                                    [[prevPoint.latitude, prevPoint.longitude], [currPoint.latitude, currPoint.longitude]],
+                                    {
+                                        color: color,
+                                        weight: 3,
+                                    }
+                                ).addTo(map);
+                            }
+
+                            // Imposta i valori dei filtri di tempo
+                            const startTime = response.start_time;
+                            const endTime = response.end_time;
+
+                            // Funzione per formattare la data
+                            function formatDateForInput(dateString) {
+                                const date = new Date(dateString);
+                                let hours = date.getHours();
+                                let minutes = date.getMinutes();
+                                hours = hours < 10 ? '0' + hours : hours;
+                                minutes = minutes < 10 ? '0' + minutes : minutes;
+                                return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}T${hours}:${minutes}`;
+                            }
+
+                            // Imposta automaticamente i valori nel form
+                            $('#from_time').val(formatDateForInput(startTime));
+                            $('#to_time').val(formatDateForInput(endTime));
+
+                            // Mostra il form di filtro
+                            $('#time-filter-container').show();
+
+                            // Mostra il link per visualizzare i dati
+                            $('#view-table').show();
+                        }
+                    } else {
+                        $('#error-message').text(response.message || 'Errore durante il caricamento del file.');
+                    }
+                },
+                    error: function() {
+                        // Gestisce eventuali errori durante l'upload
+                        $('#search-status').html('<p>Errore durante il caricamento del file CSV.</p>');
+                        $('#search-status').removeClass('searching success').addClass('error');  // Imposta il colore rosso
+                    }
+                });
+            }, 1000); // Ritardo di 1 secondi (4000 millisecondi)
         },
         error: function() {
             // Messaggio di errore se non si trova il volo
@@ -378,6 +527,7 @@ $('#flight-form').on('submit', function (e) {
         }
     });
 });
+
 
         // Funzione di filtro
         $('#time-filter-form').on('submit', function (e) {

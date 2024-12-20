@@ -174,7 +174,7 @@ def extract_tracklog_data(flight_number, driver, tracklog_url, target_date):
 
         # Scrittura dei dati validi nel file CSV
         # Creazione del nome del file CSV
-        filename = f"{flight_number}_{target_date}.csv"
+        filename = f"flightCSV/{flight_number}_{target_date}.csv"
 
         # Apertura del file CSV in modalità scrittura
         with open(filename, mode='w', newline='') as file:
