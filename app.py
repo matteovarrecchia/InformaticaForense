@@ -1,3 +1,5 @@
+import json
+
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import os
 import pandas as pd
@@ -183,14 +185,6 @@ def submit_flight_details():
             return jsonify({"status": "error"}), 400
 
     return jsonify({"status": "error"}), 400
-
-
-def send_csv_to_flask(csv_file_path):
-    url = 'http://127.0.0.1:5000/upload_csv'  # URL della tua rotta Flask
-    with open(csv_file_path, 'rb') as file:
-        files = {'csvfile': file}
-        response = requests.post(url, files=files)
-        return response.json()
 
 
 @app.route('/showWeatherData')

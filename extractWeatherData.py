@@ -1,7 +1,4 @@
 import requests
-import json
-
-# Documentazione API: https://www.weatherapi.com/docs/
 
 def main(latitude,longitude,date,hour):
     api_key = "0942062d862e4813bf0174533240712"  # Inserisci qui la tua chiave API
