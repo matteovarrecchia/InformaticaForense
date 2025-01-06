@@ -1,7 +1,7 @@
 import requests
 
 def main(latitude,longitude,date,hour):
-    api_key = "0942062d862e4813bf0174533240712"  # Inserisci qui la tua chiave API
+    api_key = "f1e25842b59f4fe39d592808250601"  # Inserisci qui la tua chiave API
     url = f"http://api.weatherapi.com/v1/history.json?key={api_key}&q={latitude},{longitude}&dt={date}&hour={hour}"
     json_data = 'weather_data.json'
     try:
